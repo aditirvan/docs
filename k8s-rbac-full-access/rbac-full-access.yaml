@@ -1,0 +1,46 @@
+---
+# 1. ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: full-access-sa
+  namespace: kube-system
+
+---
+# 2. ClusterRole (full access ke semua resource & semua API group)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: full-access-cluster-role
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  - nonResourceURLs: ["*"]
+    verbs: ["*"]
+
+---
+# 3. ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: full-access-cluster-role-binding
+subjects:
+  - kind: ServiceAccount
+    name: full-access-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: full-access-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# 4. Secret (token untuk ServiceAccount, kompatibel K8s 1.24+)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: full-access-sa-token
+  namespace: kube-system
+  annotations:
+    kubernetes.io/service-account.name: full-access-sa
+type: kubernetes.io/service-account-token
