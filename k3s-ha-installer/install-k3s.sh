@@ -275,7 +275,7 @@ read -rp "Masukkan flannel-iface: " FLANNEL_IFACE
 echo
 
 # ---------- 6. Versi k3s ----------
-c_yellow "Contoh format versi: v1.36.4+k3s1"
+c_yellow "Contoh format versi: v1.37.1+k3s1"
 c_yellow "Lihat daftar versi lengkap di: https://github.com/k3s-io/k3s/releases"
 read -rp "Masukkan versi k3s yang ingin diinstall (kosongkan untuk versi latest/stable): " K3S_VERSION
 
