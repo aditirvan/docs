@@ -8,6 +8,11 @@
 
 set -euo pipefail
 
+# ---------- Versi default k3s ----------
+# Dipakai untuk install & upgrade jika input versi dikosongkan.
+# Samakan versi ini di semua node cluster.
+K3S_DEFAULT_VERSION="v1.37.1+k3s1"
+
 # ---------- helper ----------
 c_green() { echo -e "\033[0;32m$1\033[0m"; }
 c_yellow() { echo -e "\033[1;33m$1\033[0m"; }
@@ -28,6 +33,7 @@ require_root
 
 echo "=================================================="
 echo "   K3S INTERACTIVE INSTALLER"
+echo "   Versi default: ${K3S_DEFAULT_VERSION}"
 echo "=================================================="
 echo
 
@@ -105,15 +111,21 @@ if [[ "${ACTION_CHOICE}" == "3" ]]; then
   c_yellow "Versi k3s saat ini  : ${CURRENT_VERSION}"
   echo
 
-  c_yellow "Contoh format versi tujuan: v1.35.2+k3s1"
+  c_yellow "Format versi: vX.Y.Z+k3sN (contoh: ${K3S_DEFAULT_VERSION})"
   c_yellow "Lihat daftar versi lengkap di: https://github.com/k3s-io/k3s/releases"
-  read -rp "Masukkan versi k3s tujuan upgrade: " TARGET_VERSION
-  [[ -z "${TARGET_VERSION}" ]] && die "Versi tujuan wajib diisi."
+  read -rp "Masukkan versi k3s tujuan upgrade [default: ${K3S_DEFAULT_VERSION}]: " TARGET_VERSION
+  TARGET_VERSION="${TARGET_VERSION:-${K3S_DEFAULT_VERSION}}"
+  c_green "Versi tujuan: ${TARGET_VERSION}"
   echo
+
+  if [[ "${TARGET_VERSION}" == "${CURRENT_VERSION}" ]]; then
+    c_yellow "Node ini sudah di versi ${CURRENT_VERSION}. Tidak ada yang perlu di-upgrade."
+    exit 0
+  fi
 
   # ---------- Parsing minor version untuk cek skip-version ----------
   extract_minor() {
-    # v1.34.1+k3s1 -> 34
+    # v1.37.1+k3s1 -> 37
     echo "$1" | sed -E 's/^v?1\.([0-9]+)\..*/\1/'
   }
 
@@ -137,7 +149,7 @@ if [[ "${ACTION_CHOICE}" == "3" ]]; then
       fi
       c_red "Melanjutkan upgrade langsung atas permintaan sendiri. Risiko ditanggung sendiri."
     else
-      c_green "Upgrade 1 minor version (1.${CURRENT_MINOR} -> 1.${TARGET_MINOR}), sesuai rekomendasi resmi."
+      c_green "Upgrade maksimal 1 minor version (1.${CURRENT_MINOR} -> 1.${TARGET_MINOR}), sesuai rekomendasi resmi."
     fi
   else
     c_yellow "Tidak bisa parsing minor version otomatis, lanjut tanpa pengecekan skip-version."
@@ -275,14 +287,17 @@ read -rp "Masukkan flannel-iface: " FLANNEL_IFACE
 echo
 
 # ---------- 6. Versi k3s ----------
-c_yellow "Contoh format versi: v1.36.4+k3s1"
+c_yellow "Format versi: vX.Y.Z+k3sN (contoh: ${K3S_DEFAULT_VERSION})"
 c_yellow "Lihat daftar versi lengkap di: https://github.com/k3s-io/k3s/releases"
-read -rp "Masukkan versi k3s yang ingin diinstall (kosongkan untuk versi latest/stable): " K3S_VERSION
+c_yellow "Ketik 'stable' untuk memakai versi channel stable terbaru dari get.k3s.io."
+read -rp "Masukkan versi k3s yang ingin diinstall [default: ${K3S_DEFAULT_VERSION}]: " K3S_VERSION
+K3S_VERSION="${K3S_VERSION:-${K3S_DEFAULT_VERSION}}"
 
-if [[ -n "${K3S_VERSION}" ]]; then
-  c_green "Akan menginstall k3s versi: ${K3S_VERSION}"
+if [[ "${K3S_VERSION}" == "stable" ]]; then
+  K3S_VERSION=""
+  c_yellow "Akan menginstall k3s versi channel stable terbaru."
 else
-  c_yellow "Akan menginstall k3s versi latest/stable (default)."
+  c_green "Akan menginstall k3s versi: ${K3S_VERSION}"
 fi
 echo
 
@@ -310,8 +325,8 @@ echo "  Mode        : ${MODE}"
 echo "  Hostname    : ${CURRENT_HOSTNAME}"
 echo "  Node Name   : ${NODE_NAME}"
 echo "  Node IP     : ${NODE_IP}"
-echo "  Flannel If  : ${FLANNEL_IFACE}
-  K3s Version : ${K3S_VERSION:-latest/stable}"
+echo "  Flannel If  : ${FLANNEL_IFACE}"
+echo "  K3s Version : ${K3S_VERSION:-stable (terbaru)}"
 [[ "${MODE}" != "init" ]] && echo "  Server URL  : ${SERVER_URL}"
 echo "=================================================="
 read -rp "Lanjutkan instalasi? [y/N]: " CONFIRM
